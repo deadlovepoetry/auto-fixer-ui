@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import VercelApiService from '../services/vercelApi';
 import './VercelLogs.css';
 
-const VercelLogs = () => {
+const VercelLogs = ({ onLogsFetched }) => {
   const [apiToken, setApiToken] = useState('');
   const [teamId, setTeamId] = useState('');
   const [projects, setProjects] = useState([]);
@@ -17,7 +17,6 @@ const VercelLogs = () => {
   const [activeTab, setActiveTab] = useState('deployment');
   const [vercelService, setVercelService] = useState(null);
 
-  // Initialize Vercel service when token changes
   useEffect(() => {
     if (apiToken) {
       const service = new VercelApiService(apiToken, teamId || null);
@@ -68,26 +67,33 @@ const VercelLogs = () => {
     setLoading(true);
     setError('');
     try {
-      // Fetch deployment logs
       const deploymentLogsData = await vercelService.getDeploymentLogs(selectedDeployment);
-      setDeploymentLogs(deploymentLogsData || []);
-
-      // Fetch function logs (including error logs)
       const functionLogsData = await vercelService.getFunctionLogs(selectedDeployment);
-      setErrorLogs(functionLogsData.errorLogs || []);
-
-      // Fetch build logs
       const buildLogsData = await vercelService.getBuildLogs(selectedDeployment);
+
+      setDeploymentLogs(deploymentLogsData || []);
+      setErrorLogs(functionLogsData.errorLogs || []);
       setBuildLogs(buildLogsData || []);
+
+      // Combine logs and send to App.js
+      const combinedLogs = [
+        ...deploymentLogsData,
+        ...(functionLogsData.errorLogs || []),
+        ...(buildLogsData || [])
+      ]
+        .map((log) => log.payload?.text || log.text || '')
+        .join('\n');
+
+      if (onLogsFetched) {
+        onLogsFetched(combinedLogs);
+      }
     } catch (err) {
       setError(err.message);
     }
     setLoading(false);
   };
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
-  };
+  const formatTimestamp = (timestamp) => new Date(timestamp).toLocaleString();
 
   const renderLogEntry = (log, index) => (
     <div key={index} className="log-entry">
@@ -108,7 +114,6 @@ const VercelLogs = () => {
         <p>Fetch deployment logs and error logs from your Vercel projects</p>
       </div>
 
-      {/* API Configuration */}
       <div className="config-section">
         <h2>Configuration</h2>
         <div className="config-form">
@@ -138,7 +143,6 @@ const VercelLogs = () => {
         </div>
       </div>
 
-      {/* Project Selection */}
       {projects.length > 0 && (
         <div className="selection-section">
           <h2>Select Project</h2>
@@ -160,7 +164,6 @@ const VercelLogs = () => {
         </div>
       )}
 
-      {/* Deployment Selection */}
       {deployments.length > 0 && (
         <div className="selection-section">
           <h2>Select Deployment</h2>
@@ -182,14 +185,12 @@ const VercelLogs = () => {
         </div>
       )}
 
-      {/* Error Display */}
       {error && (
         <div className="error-message">
           <strong>Error:</strong> {error}
         </div>
       )}
 
-      {/* Loading Indicator */}
       {loading && (
         <div className="loading">
           <div className="spinner"></div>
@@ -197,62 +198,36 @@ const VercelLogs = () => {
         </div>
       )}
 
-      {/* Logs Display */}
       {(deploymentLogs.length > 0 || errorLogs.length > 0 || buildLogs.length > 0) && (
         <div className="logs-section">
           <h2>Logs</h2>
-          
-          {/* Tabs */}
+
           <div className="tabs">
-            <button
-              className={`tab ${activeTab === 'deployment' ? 'active' : ''}`}
-              onClick={() => setActiveTab('deployment')}
-            >
+            <button className={`tab ${activeTab === 'deployment' ? 'active' : ''}`} onClick={() => setActiveTab('deployment')}>
               Deployment Logs ({deploymentLogs.length})
             </button>
-            <button
-              className={`tab ${activeTab === 'error' ? 'active' : ''}`}
-              onClick={() => setActiveTab('error')}
-            >
+            <button className={`tab ${activeTab === 'error' ? 'active' : ''}`} onClick={() => setActiveTab('error')}>
               Error Logs ({errorLogs.length})
             </button>
-            <button
-              className={`tab ${activeTab === 'build' ? 'active' : ''}`}
-              onClick={() => setActiveTab('build')}
-            >
+            <button className={`tab ${activeTab === 'build' ? 'active' : ''}`} onClick={() => setActiveTab('build')}>
               Build Logs ({buildLogs.length})
             </button>
           </div>
 
-          {/* Tab Content */}
           <div className="tab-content">
             {activeTab === 'deployment' && (
               <div className="logs-container">
-                {deploymentLogs.length === 0 ? (
-                  <p>No deployment logs found.</p>
-                ) : (
-                  deploymentLogs.map((log, index) => renderLogEntry(log, index))
-                )}
+                {deploymentLogs.length === 0 ? <p>No deployment logs found.</p> : deploymentLogs.map(renderLogEntry)}
               </div>
             )}
-
             {activeTab === 'error' && (
               <div className="logs-container">
-                {errorLogs.length === 0 ? (
-                  <p>No error logs found.</p>
-                ) : (
-                  errorLogs.map((log, index) => renderLogEntry(log, index))
-                )}
+                {errorLogs.length === 0 ? <p>No error logs found.</p> : errorLogs.map(renderLogEntry)}
               </div>
             )}
-
             {activeTab === 'build' && (
               <div className="logs-container">
-                {buildLogs.length === 0 ? (
-                  <p>No build logs found.</p>
-                ) : (
-                  buildLogs.map((log, index) => renderLogEntry(log, index))
-                )}
+                {buildLogs.length === 0 ? <p>No build logs found.</p> : buildLogs.map(renderLogEntry)}
               </div>
             )}
           </div>
