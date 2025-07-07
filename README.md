@@ -69,13 +69,15 @@ This application uses the following Vercel API endpoints:
 ```
 src/
 ├── components/
-│   ├── VercelLogs.js      # Main dashboard component
-│   └── VercelLogs.css     # Styling for the dashboard
+│   ├── VercelLogs.js         # Fetches Vercel logs
+│   ├── VercelLogs.css        # Styling for log viewer
+│   └── AiFixer.js            # GROQ AI suggestion component
 ├── services/
-│   └── vercelApi.js       # Vercel API service class
-├── App.js                 # Main app component
-├── App.css                # Global styles
-└── index.js               # App entry point
+│   └── vercelApi.js          # Vercel API service class
+├── App.js                    # Manages shared state, renders components
+├── App.css                   # Global styles
+└── index.js                  # App entry point
+
 ```
 
 ## Available Scripts
