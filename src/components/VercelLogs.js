@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import VercelApiService from '../services/vercelApi';
 import './VercelLogs.css';
 
-const VercelLogs = ({ onLogsFetched }) => {
+const VercelLogs = ({ onLogsChange, onErrorsDetected }) => {
   const [apiToken, setApiToken] = useState('');
   const [teamId, setTeamId] = useState('');
   const [projects, setProjects] = useState([]);
@@ -84,8 +84,19 @@ const VercelLogs = ({ onLogsFetched }) => {
         .map((log) => log.payload?.text || log.text || '')
         .join('\n');
 
-      if (onLogsFetched) {
-        onLogsFetched(combinedLogs);
+      if (onLogsChange) {
+        onLogsChange(combinedLogs);
+      }
+      
+      // Send detected errors
+      if (onErrorsDetected && functionLogsData.errorLogs && functionLogsData.errorLogs.length > 0) {
+        const errors = functionLogsData.errorLogs.map((log, index) => ({
+          line: index + 1,
+          content: log.payload?.text || log.text || '',
+          timestamp: log.created,
+          severity: 'ERROR'
+        }));
+        onErrorsDetected(errors);
       }
     } catch (err) {
       setError(err.message);
